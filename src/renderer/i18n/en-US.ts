@@ -4,6 +4,7 @@ export const enUS = {
       server: 'Server | Servers',
       host: 'Host | Hosts',
       message: 'Message | Messages',
+      server_message: 'Response Message | Response Messages',
       port: 'Port | Ports',
       data: 'Data | Data',
       name: 'Name | Names',

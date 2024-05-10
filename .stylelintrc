@@ -9,6 +9,7 @@
     "stylelint-scss"
   ],
   "rules": {
+    "indentation": ["tab", 4],
     "at-rule-no-unknown": null,
     "no-descending-specificity": null,
     "font-family-no-missing-generic-family-keyword": null,

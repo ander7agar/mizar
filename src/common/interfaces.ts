@@ -27,6 +27,13 @@ export interface ServerPort {
    port: number;
 }
 
+export interface ServerMessage {
+   enabled: boolean;
+   format: 'hex' | 'utf-8' | 'binary';
+   message: string;
+   name: string;
+}
+
 export interface ServerReport {
    port: number;
    sockets: number;

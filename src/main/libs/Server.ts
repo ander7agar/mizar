@@ -1,4 +1,4 @@
-import { ServerPort } from 'common/interfaces';
+import {ServerMessage, ServerPort} from 'common/interfaces';
 import * as net from 'net';
 
 interface ServerParams {
@@ -14,6 +14,7 @@ class Server {
    private alertReset: boolean;
    private ports: ServerPort[];
    private server: net.Server[];
+   private messages: ServerMessage[];
    private nBytes: number[];
    private nMsgs: number[];
 
@@ -24,6 +25,7 @@ class Server {
       this.alertReset = false;
       this.ports = [];
       this.server = [];
+      this.messages = [];
       this.nBytes = [];
       this.nMsgs = [];
    }
@@ -36,6 +38,45 @@ class Server {
     */
    setPorts (ports: ServerPort[]) {
       this.ports = ports;
+   }
+
+   /**
+    *
+    * @param messages
+    */
+   setMessages (messages: ServerMessage[]) {
+      this.messages = messages;
+   }
+
+   /**
+    *
+    */
+   getResponseMessage() {
+      let msg = Buffer.from("NO RESPONSE", 'utf-8');
+      console.log('getResponseMessage', this.messages)
+      if (this.messages.length > 0) {
+         for (const message of this.messages) {
+            if (message.enabled) {
+               let finalMsg = message.message + "\n";
+
+               switch (message.format) {
+                  case 'utf-8':
+                     msg = Buffer.from(finalMsg, 'utf-8');
+                     break;
+                  case 'hex':
+                     msg = Buffer.from(finalMsg.replace(/\s|0x/g, ''), 'hex');
+                     break;
+                  case 'binary':
+                     msg = Buffer.from(finalMsg.replace(/\s/g, ''), 'binary');
+                     break;
+               }
+               break;
+            }
+         }
+
+      }
+      return msg;
+
    }
 
    /**
@@ -91,6 +132,26 @@ class Server {
 
                if (this.trace)
                   this.sendLog(null, '', 'messageReceivedOnPort', { port, message: msgString });
+
+               //SendResponseMessage
+               let rMessage = this.getResponseMessage();
+               console.log("responseMessage", rMessage);
+               socket.write(rMessage, (err: Error) => {
+                  let msgString: string;
+
+                  if (rMessage instanceof Buffer) {
+                     msgString = rMessage.toString('utf-8');
+                  } else {
+                     msgString = rMessage;
+                  }
+
+                  if (err) {
+                     this.sendLog(null, 'red', 'messageSentOnPort', { port, message: msgString });
+                  } else {
+                     this.sendLog(null, 'green', 'messageSentOnPort', { port, message: msgString });
+
+                  }
+               });
             });// <- socket data
 
             socket.on('end', () => {
@@ -122,6 +183,7 @@ class Server {
          });
       }
    }
+
 
    stopServer (callback: () => void) {
       (async () => {

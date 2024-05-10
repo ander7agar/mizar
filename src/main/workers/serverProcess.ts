@@ -1,14 +1,15 @@
-import { ServerPort } from 'common/interfaces';
+import {ServerMessage, ServerPort} from 'common/interfaces';
 import { Server, ServerParams } from '../libs/Server';
 
 const server = new Server(process);
 let serverTimer: NodeJS.Timer;
 
-process.on('message', (message: {event: string; ports: ServerPort[]; params: ServerParams}) => {
+process.on('message', (message: {event: string; ports: ServerPort[]; params: ServerParams, messages: ServerMessage[]}) => {
    switch (message.event) {
       case 'start':
          server.setPorts(message.ports);
          server.startServer(message.params);
+         server.setMessages(message.messages)
 
          if (serverTimer === undefined) {
             serverTimer = setInterval(() => {

@@ -188,6 +188,11 @@ ipcMain.on('send-messages', (event) => {
    event.sender.send('client-log', { i18n: 'sendingMessages', color: '' });
 });
 
+ipcMain.on("send-response-messages", (event) => {
+   serverProcess.send({ event: 'sendStep' });
+   event.sender.send('server-log', { i18n: 'sendingMessages', color: '' });
+})
+
 ipcMain.on('stop-test', () => {
    try {
       clientProcess.send({ event: 'stop' });
@@ -205,7 +210,7 @@ ipcMain.on('stop-test', () => {
 
 // Server
 let serverProcess: ChildProcess;
-ipcMain.on('start-server', (event, { params, ports }) => {
+ipcMain.on('start-server', (event, { params, ports, messages }) => {
    event.sender.send('server-log', { i18n: 'serverStart', color: '' });
    serverProcess = fork(isDevelopment ? './dist/serverProcess.js' : path.resolve(__dirname, './serverProcess.js'), [], {
       execArgv: isDevelopment ? ['--inspect=9224'] : undefined
@@ -214,7 +219,8 @@ ipcMain.on('start-server', (event, { params, ports }) => {
    const message = {
       event: 'start',
       params,
-      ports
+      ports,
+      messages
    };
    serverProcess.send(message);
 

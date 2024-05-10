@@ -9,6 +9,22 @@
                @create-port="createPort"
             />
          </transition>
+         <transition name="fade">
+            <NewMessage
+               v-if="popNewMessage"
+               @create-message="createMessage"
+               @hide-add-message="hideAddMessage"
+            />
+         </transition>
+         <transition name="fade">
+            <EditMessage
+               v-if="popEditMessage"
+               :message="localMessages[idEditedMsg]"
+               :index="idEditedMsg"
+               @hide-edit-message="hideEditMessage"
+               @edit-message="editMessage"
+            />
+         </transition>
          <form autocomplete="off" @submit.prevent="startServer">
             <fieldset :disabled="running !== 0">
                <Ports
@@ -18,6 +34,15 @@
                   @show-add-port="showAddPort"
                   @delete-port="deletePort"
                   @toggle-port-check="togglePortCheck"
+               />
+
+               <Messages
+                  ref="messages"
+                  :message-list="localMessages"
+                  @update-messages="updateMessages"
+                  @show-add-message="showAddMessage"
+                  @show-edit-message="showEditMessage"
+                  @delete-message="deleteMessage"
                />
                <div class="flex box-100">
                   <div class="box-50">
@@ -86,8 +111,12 @@ import { ref, computed, Ref, onBeforeUnmount } from 'vue';
 import { storeToRefs } from 'pinia';
 import Console from './BaseConsole.vue';
 import Ports from './ServerTabPorts.vue';
+import Messages from './ServerTabMessages.vue';
 import NewPort from './ModalNewPort.vue';
-import { ServerPort } from 'common/interfaces';
+import NewMessage from './ModalNewMessage.vue';
+import EditMessage from './ModalEditMessage.vue';
+
+import { ServerMessage, ServerPort } from 'common/interfaces';
 import ServerTabReports from './ServerTabReports.vue';
 import { ipcRenderer } from 'electron';
 import { useServerStore } from '@/stores/server';
@@ -100,7 +129,8 @@ const { t } = useI18n();
 const serverStore = useServerStore();
 
 const { ports } = storeToRefs(serverStore);
-const { updatePorts: updateStorePorts } = serverStore;
+const { messages } = storeToRefs(serverStore);
+const { updatePorts: updateStorePorts, updateMessages: updateStoreMessages } = serverStore;
 
 const running = ref(0);
 const params = ref({
@@ -111,7 +141,11 @@ const params = ref({
 const logs = ref([]);
 const reportList = ref([]);
 const popNewPort = ref(false);
+const popNewMessage = ref(false);
+const popEditMessage = ref(false);
+const idEditedMsg = ref(null);
 const localPorts = ref(ports.value);
+const localMessages = ref(messages.value);
 const logsCache = ref([]);
 const logsInterval: Ref<NodeJS.Timer> = ref(null);
 
@@ -129,6 +163,9 @@ const startServer = (e: MouseEvent) => {
       params: params.value,
       ports: localPorts.value.filter((port) => {
          return port.enabled === true;
+      }),
+      messages: localMessages.value.filter((message) => {
+         return message.enabled === true;
       })
    };
    ipcRenderer.send('start-server', unproxify(obj));
@@ -164,6 +201,53 @@ const deletePort = (portId: number) => {
 
 const resetReports = () => {
    ipcRenderer.send('reset-reports');
+};
+
+// Messaggi
+const createMessage = (message: ServerMessage) => {
+   localMessages.value.push(message);
+   popNewMessage.value = false;
+   updateStoreMessages(localMessages.value);
+};
+
+const editMessage = (message: ServerMessage, index: number) => {
+   popEditMessage.value = false;
+   localMessages.value[index] = message;
+   updateStoreMessages(localMessages.value);
+};
+
+const updateMessages = (activeMessage: any) => {
+    for (let message of localMessages.value) {
+        message.enabled = message.name === activeMessage.value;
+    }
+
+   updateStoreMessages(localMessages.value);
+};
+
+const showAddMessage = () => {
+   popNewMessage.value = true;
+};
+
+const hideAddMessage = () => {
+   popNewMessage.value = false;
+};
+
+const showEditMessage = (index: number) => {
+   idEditedMsg.value = index;
+   popEditMessage.value = true;
+};
+
+const hideEditMessage = () => {
+   popEditMessage.value = false;
+};
+
+const deleteMessage = (messageId: number) => {
+   localMessages.value.splice(messageId, 1);
+   updateStoreMessages(localMessages.value);
+};
+
+const resetMessages = () => {
+   ipcRenderer.send('reset-messages');
 };
 
 const togglePortCheck = (status: number) => {
